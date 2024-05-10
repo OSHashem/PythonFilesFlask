@@ -2,14 +2,27 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 app.use(express.json()); // Middleware to parse JSON bodies
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const scriptPath = path.join(__dirname, 'python.py');
+
+console.log('Path to the Python script:', scriptPath);
+
+// const normalizedPath = scriptPath.replace(/\\/g, '/');
+// const finalPath = normalizedPath.replace(/subdir/g,'/');
+// const finalPath2 = finalPath.replace(/////g,'/');
+// console.log(normalizedPath);
+
 // Function to start the Python server
 function startPythonServer() {
-    const pythonServer = spawn('python', ['./python.py'], {
-        cwd: 'C:/Users/Lenovo/Desktop/Python To JS/PythonFilesFlask', // Update the path as necessary
+    const pythonServer = spawn('python', [scriptPath], {
+        cwd: path.dirname(scriptPath), // Update the path as necessary
         detached: true,
         stdio: 'inherit'
     });

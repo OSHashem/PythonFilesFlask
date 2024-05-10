@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 import os
 
-print("Current working directory:", os.getcwd())
+# print("Current working directory:", os.getcwd())
 app = Flask(__name__)
 
 # Route to receive data from Node.js and send a response
