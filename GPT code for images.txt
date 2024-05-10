@@ -1,0 +1,94 @@
+Q: could this code send and receive objects (files, photos..)
+
+A: Yes, the provided setup can be extended to send and receive files or photos between a Node.js server and a Python Flask server. However, you will need to make some modifications to handle file uploads and downloads effectively.
+
+Here's how you can adjust the code to send a file from Node.js to Python and receive a file back from Python using `form-data` for file handling.
+
+### Modifications for Python Flask Server
+
+You'll need to install Flask's extension for handling uploads: `Flask-Uploads`.
+
+1. **Install Flask-Uploads**:
+   ```bash
+   pip install Flask-Uploads
+   ```
+
+2. **Python Code** (`app.py`):
+   ```python
+   from flask import Flask, request, jsonify, send_file
+   from werkzeug.utils import secure_filename
+   from flask_uploads import UploadSet, configure_uploads, IMAGES
+
+   app = Flask(__name__)
+
+   photos = UploadSet('photos', IMAGES)
+   app.config['UPLOADED_PHOTOS_DEST'] = 'static/images'  # choose your own destination
+   configure_uploads(app, photos)
+
+   @app.route('/upload', methods=['POST'])
+   def upload():
+       if 'photo' in request.files:
+           filename = photos.save(request.files['photo'])
+           return jsonify({'message': 'File uploaded successfully', 'filename': filename})
+       return jsonify({'error': 'No file part'})
+
+   @app.route('/download/<filename>', methods=['GET'])
+   def download(filename):
+       return send_file('static/images/' + filename, as_attachment=True)
+
+   if __name__ == '__main__':
+       app.run(port=5000, debug=True)
+   ```
+
+### Modifications for Node.js Server
+
+You'll need a way to handle multipart/form-data for file uploads. `form-data` module in Node.js can be used for this purpose.
+
+1. **Install necessary packages**:
+   ```bash
+   npm install form-data node-fetch
+   ```
+
+2. **Node.js Code** (`server.js`):
+   ```javascript
+   const express = require('express');
+   const fetch = require('node-fetch');
+   const FormData = require('form-data');
+   const fs = require('fs');
+
+   const app = express();
+
+   app.post('/send-file-to-python', async (req, res) => {
+       const formData = new FormData();
+       formData.append('photo', fs.createReadStream('./path/to/your/image.png'));
+
+       try {
+           const response = await fetch('http://localhost:5000/upload', {
+               method: 'POST',
+               body: formData,
+               headers: formData.getHeaders()
+           });
+           const result = await response.json();
+
+           // Assuming you want to download the file back from Python after upload
+           const fileResponse = await fetch(`http://localhost:5000/download/${result.filename}`);
+           const buffer = await fileResponse.buffer();
+           fs.writeFileSync('./path/to/save/downloaded/image.png', buffer);
+
+           res.status(200).json({ message: 'File sent and received back successfully!' });
+       } catch (error) {
+           res.status(500).json({ error: 'Failed to send file to Python server' });
+       }
+   });
+
+   app.listen(3000, () => {
+       console.log('Server running on http://localhost:3000');
+   });
+   ```
+
+### How to Use This Code
+1. **Run the Python server** using `python app.py`.
+2. **Run the Node.js server** using `node server.js`.
+3. Use a client like Postman to send a file to `http://localhost:3000/send-file-to-python`.
+
+This setup will allow you to send an image from Node.js to Python, save it on the Python server, and optionally download it back to Node.js. You can adjust the file paths and types as needed for your specific requirements.
